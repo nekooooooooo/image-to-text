@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Image Text Extractor</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            background-color: #f7f7f7;
+        }
+
+        input,
+        img,
+        textarea {
+            margin-top: 1rem;
+            max-width: 90%;
+        }
+
+        img {
+            max-height: 300px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+        }
+
+        .hint {
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Image to Text Extractor</h1>
+    <input type="file" accept="image/*" id="imageInput">
+    <div class="hint">📋 You can also paste an image from clipboard (Ctrl+V)</div>
+    <img id="preview" src="" alt="Preview will appear here" hidden>
+    <p id="status"></p>
+    <textarea id="output" placeholder="Extracted text will appear here..." readonly></textarea>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const preview = document.getElementById('preview');
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+
+        function handleImageBlob(blob) {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                preview.src = reader.result;
+                preview.hidden = false;
+                status.textContent = "Scanning image...";
+                output.value = "";
+
+                try {
+                    const result = await Tesseract.recognize(reader.result, 'eng', {
+                        logger: m => status.textContent = `Progress: ${Math.round(m.progress * 100)}%`
+                    });
+                    output.value = result.data.text;
+                    status.textContent = "Text extraction complete.";
+                } catch (err) {
+                    status.textContent = "Error: " + err.message;
+                }
+            };
+            reader.readAsDataURL(blob);
+        }
+
+        imageInput.addEventListener('change', () => {
+            const file = imageInput.files[0];
+            if (file) handleImageBlob(file);
+        });
+
+        window.addEventListener('paste', (event) => {
+            const items = event.clipboardData.items;
+            for (const item of items) {
+                if (item.type.startsWith('image')) {
+                    const blob = item.getAsFile();
+                    handleImageBlob(blob);
+                    break;
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>
